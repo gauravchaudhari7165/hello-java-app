@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -32,12 +33,18 @@ pipeline {
 
         stage('Docker Hub Login') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+                        echo "$DOCKER_PASS" |
+                            docker login -u "$DOCKER_USER" --password-stdin
+                    '''
                 }
             }
         }
@@ -48,75 +55,62 @@ pipeline {
             }
         }
 
-       
-stage('Debug Kubernetes Connection') {
-    steps {
-        withCredentials([
-            file(
-                credentialsId: 'minikube-kubeconfig',
-                variable: 'KUBECONFIG'
-            )
-        ]) {
-            sh '''
-                set -eu
+        stage('Debug Kubernetes Connection') {
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'minikube-kubeconfig',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
 
-                echo "Checking Kubernetes context..."
-                kubectl config current-context
+                        echo "Checking Kubernetes context..."
+                        kubectl config current-context
 
-                echo "Checking Kubernetes API..."
-                kubectl get --raw=/version
+                        echo "Checking Kubernetes API..."
+                        kubectl get --raw=/version
 
-                echo "Checking cluster nodes..."
-                kubectl get nodes
-            '''
+                        echo "Checking cluster nodes..."
+                        kubectl get nodes
+                    '''
+                }
+            }
         }
-    }
-}
-
-stage('Deploy to Kubernetes') {
-    steps {
-        withCredentials([
-            file(
-                credentialsId: 'minikube-kubeconfig',
-                variable: 'KUBECONFIG'
-            )
-        ]) {
-            sh '''
-                set -eu
-                kubectl apply -f deployment.yaml
-            '''
-        }
-    }
-}
-
-stage('Verify Deployment') {
-    steps {
-        withCredentials([
-            file(
-                credentialsId: 'minikube-kubeconfig',
-                variable: 'KUBECONFIG'
-            )
-        ]) {
-            sh '''
-                set -eu
-                kubectl get deployments
-                kubectl get pods
-                kubectl get services
-            '''
-        }
-    }
-}
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh 'kubectl apply -f deployment.yaml'
+                withCredentials([
+                    file(
+                        credentialsId: 'minikube-kubeconfig',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+                        kubectl apply -f deployment.yaml
+                    '''
+                }
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                sh 'kubectl get deployments'
-                sh 'kubectl get pods'
+                withCredentials([
+                    file(
+                        credentialsId: 'minikube-kubeconfig',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+                        kubectl rollout status deployment/hello-java-app --timeout=120s
+                        kubectl get deployments
+                        kubectl get pods
+                        kubectl get services
+                    '''
+                }
             }
         }
     }
