@@ -48,6 +48,29 @@ pipeline {
             }
         }
 
+        stage('Debug Kubernetes Connection') {
+    steps {
+        sh '''
+            echo "Checking kubectl location..."
+            which kubectl
+
+            echo "Checking kubeconfig..."
+            echo "KUBECONFIG=${KUBECONFIG:-not-set}"
+
+            echo "Checking Kubernetes endpoint..."
+            kubectl config view --minify \
+              -o jsonpath='{.clusters[0].cluster.server}'
+            echo
+
+            echo "Checking API connectivity..."
+            kubectl get --raw=/version
+
+            echo "Checking nodes..."
+            kubectl get nodes
+        '''
+    }
+}
+
         stage('Deploy to Kubernetes') {
             steps {
                 sh 'kubectl apply -f deployment.yaml'
