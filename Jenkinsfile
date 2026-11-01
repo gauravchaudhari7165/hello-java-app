@@ -48,26 +48,62 @@ pipeline {
             }
         }
 
-        stage('Debug Kubernetes Connection') {
+       
+stage('Debug Kubernetes Connection') {
     steps {
-        sh '''
-            echo "Checking kubectl location..."
-            which kubectl
+        withCredentials([
+            file(
+                credentialsId: 'minikube-kubeconfig',
+                variable: 'KUBECONFIG'
+            )
+        ]) {
+            sh '''
+                set -eu
 
-            echo "Checking kubeconfig..."
-            echo "KUBECONFIG=${KUBECONFIG:-not-set}"
+                echo "Checking Kubernetes context..."
+                kubectl config current-context
 
-            echo "Checking Kubernetes endpoint..."
-            kubectl config view --minify \
-              -o jsonpath='{.clusters[0].cluster.server}'
-            echo
+                echo "Checking Kubernetes API..."
+                kubectl get --raw=/version
 
-            echo "Checking API connectivity..."
-            kubectl get --raw=/version
+                echo "Checking cluster nodes..."
+                kubectl get nodes
+            '''
+        }
+    }
+}
 
-            echo "Checking nodes..."
-            kubectl get nodes
-        '''
+stage('Deploy to Kubernetes') {
+    steps {
+        withCredentials([
+            file(
+                credentialsId: 'minikube-kubeconfig',
+                variable: 'KUBECONFIG'
+            )
+        ]) {
+            sh '''
+                set -eu
+                kubectl apply -f deployment.yaml
+            '''
+        }
+    }
+}
+
+stage('Verify Deployment') {
+    steps {
+        withCredentials([
+            file(
+                credentialsId: 'minikube-kubeconfig',
+                variable: 'KUBECONFIG'
+            )
+        ]) {
+            sh '''
+                set -eu
+                kubectl get deployments
+                kubectl get pods
+                kubectl get services
+            '''
+        }
     }
 }
 
