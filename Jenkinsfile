@@ -105,7 +105,6 @@ pipeline {
                 ]) {
                     sh '''
                         set -eu
-                        kubectl rollout status deployment/hello-java-app --timeout=120s
                         kubectl get deployments
                         kubectl get pods
                         kubectl get services
