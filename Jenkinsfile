@@ -59,7 +59,7 @@ pipeline {
             steps {
                 withCredentials([
                     file(
-                        credentialsId: 'minikube-config-vm',
+                        credentialsId: 'minikube-kubeconfig',
                         variable: 'KUBECONFIG'
                     )
                 ]) {
@@ -83,7 +83,7 @@ pipeline {
             steps {
                 withCredentials([
                     file(
-                        credentialsId: 'minikube-config-vm',
+                        credentialsId: 'minikube-kubeconfig',
                         variable: 'KUBECONFIG'
                     )
                 ]) {
@@ -99,7 +99,7 @@ pipeline {
             steps {
                 withCredentials([
                     file(
-                        credentialsId: 'minikube-config-vm',
+                        credentialsId: 'minikube-kubeconfig',
                         variable: 'KUBECONFIG'
                     )
                 ]) {
